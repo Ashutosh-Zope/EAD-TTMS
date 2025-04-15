@@ -9,12 +9,18 @@ exports.registerUser = async (req, res) => {
 
   const getParams = {
     TableName: TABLE_NAME,
-    Key: { email }
+    Key: { userId: email }
   };
 
   const putParams = {
     TableName: TABLE_NAME,
-    Item: { email, name, password, phone, createdAt: new Date().toISOString() }
+    Item: {
+  userId: email,
+  name,
+  password,
+  phone,
+  createdAt: new Date().toISOString()
+}
   };
 
   try {
@@ -38,7 +44,7 @@ exports.loginUser = async (req, res) => {
 
   const getParams = {
     TableName: TABLE_NAME,
-    Key: { email }
+    Key: { userId: email }
   };
 
   try {
@@ -62,7 +68,7 @@ exports.forgotPassword = async (req, res) => {
 
   const getParams = {
     TableName: TABLE_NAME,
-    Key: { email }
+    Key: { userId: email }
   };
 
   try {
