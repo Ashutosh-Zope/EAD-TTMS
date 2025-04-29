@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:5001/api";
 
@@ -8,6 +8,15 @@ const SignUp = ({ switchToLogin }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [departments, setDepartments] = useState([]);
+  const [deptId, setDeptId] = useState("");
+
+  useEffect(() => {
+    fetch(`${API_BASE}/users/departments`)
+      .then((res) => res.json())
+      .then(setDepartments)
+      .catch(console.error);
+  }, []);
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -19,8 +28,9 @@ const SignUp = ({ switchToLogin }) => {
       const response = await fetch(`${API_BASE}/users/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, phone }),
+        body: JSON.stringify({ name, email, password, phone, departmentIds: deptId ? [deptId] : [] }),
       });
+
       const data = await response.json();
       if (response.ok) {
         alert(data.message);
@@ -93,6 +103,18 @@ const SignUp = ({ switchToLogin }) => {
           onChange={(e) => setConfirmPassword(e.target.value)}
           style={styles.input}
         />
+        <select
+          value={deptId}
+          onChange={(e) => setDeptId(e.target.value)}
+          required
+          style={styles.input}
+        >
+          <option value="" disabled>Select department…</option>
+          {departments.map((dept) => (
+            <option key={dept.departmentId} value={dept.departmentId}>{dept.name}</option>
+          ))}
+        </select>
+
         <button type="submit" style={styles.submitButton}>
           SIGN UP
         </button>
