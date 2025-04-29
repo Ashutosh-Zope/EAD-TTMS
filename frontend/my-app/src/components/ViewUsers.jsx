@@ -1,326 +1,222 @@
-// src/components/ViewUsers.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 
-const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:5001/api";
-
-export default function ViewUsers() {
+const ViewUsers = () => {
   const [users, setUsers] = useState([]);
-  const [departments, setDepartments] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [menuOpen, setMenuOpen] = useState(false);
   const usersPerPage = 10;
   const navigate = useNavigate();
-  const email = localStorage.getItem("userEmail");
 
   useEffect(() => {
-    if (!email) {
-      navigate("/");
-      return;
-    }
-    fetchUsers();
-    fetchDepartments();
-  }, [email, navigate]);
+    fetch("http://localhost:5001/api/users/users")
+      .then((res) => res.json())
+      .then((data) => setUsers(data))
+      .catch(console.error);
+  }, []);
 
-  const fetchUsers = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/users/users`);
-      const data = await res.json();
-      setUsers(data);
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to fetch users.");
-    }
-  };
+  const indexOfLastUser = currentPage * usersPerPage;
+  const indexOfFirstUser = indexOfLastUser - usersPerPage;
+  const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser);
 
-  const fetchDepartments = async () => {
-    try {
-      const res = await fetch(`${API_BASE}/users/departments`);
-      const data = await res.json();
-      setDepartments(data);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+  const totalPages = Math.ceil(users.length / usersPerPage);
 
-  const promoteUser = async (userEmail) => {
-    if (!window.confirm(`Promote ${userEmail} to Admin?`)) return;
-    try {
-      const res = await fetch(`${API_BASE}/users/promote/${userEmail}`, { method: "POST" });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success(data.message || "Promoted successfully!");
-        fetchUsers();
-      } else {
-        toast.error(data.message || "Failed to promote.");
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Server error during promotion.");
-    }
-  };
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  const deleteUser = async (userEmail) => {
-    if (!window.confirm(`Are you sure you want to delete ${userEmail}?`)) return;
-    try {
-      const res = await fetch(`${API_BASE}/users/${encodeURIComponent(userEmail)}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        toast.error(`Error: ${data.message}`);
-      } else {
-        toast.success(data.message);
-        fetchUsers();
-      }
-    } catch (error) {
-      console.error("Delete user error:", error);
-      toast.error("Failed to delete user. Try again.");
-    }
-  };
-
+  // 🔥 Add handleLogout function
   const handleLogout = () => {
     localStorage.removeItem("userEmail");
     localStorage.removeItem("userRole");
     navigate("/");
   };
 
-  const updateDepartments = async (userEmail, newDeptIds) => {
-    try {
-      const res = await fetch(
-        `${API_BASE}/users/departments/${userEmail}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ departmentIds: newDeptIds }),
-        }
-      );
-      if (!res.ok) throw new Error("Failed updating departments");
-      setUsers((u) =>
-        u.map((x) =>
-          x.email === userEmail ? { ...x, departmentIds: newDeptIds } : x
-        )
-      );
-    } catch (err) {
-      console.error(err);
-      alert(err.message);
-    }
-  };
-
-  const indexOfLastUser = currentPage * usersPerPage;
-  const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = users.slice(indexOfFirstUser, indexOfLastUser);
-  const totalPages = Math.ceil(users.length / usersPerPage);
-
-  const handlePageChange = (pageNumber) => {
-    if (pageNumber >= 1 && pageNumber <= totalPages) {
-      setCurrentPage(pageNumber);
-    }
-  };
-
   return (
-    <div style={pageWrapperStyle}>
-      {/* Sidebar */}
-      <div style={sidebarWrapperStyle}>
-        <Sidebar onLogout={handleLogout} isAdmin={true} />
-      </div>
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        width: "100vw",
+        overflow: "hidden",
+        backgroundColor: "#f9fafb",
+      }}
+    >
+      {/* 🔥 Pass handleLogout to Sidebar */}
+      <Sidebar onLogout={handleLogout} isAdmin={true} />
 
-      <div style={contentWrapperStyle}>
-        <div style={cardStyle}>
-          <h1 style={titleStyle}>View Users</h1>
+      <main
+        style={{
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          padding: "2rem",
+          height: "100vh",
+          width: "100%",
+          overflow: "hidden",
+        }}
+      >
+        <h1
+          style={{
+            textAlign: "center",
+            marginBottom: "1.5rem",
+            fontSize: "2rem",
+            fontWeight: "bold",
+            color: "#1e293b",
+          }}
+        >
+          User Management
+        </h1>
 
-          <div style={{ overflowX: "auto" }}>
-            <table style={tableStyle}>
-              <thead style={theadStyle}>
-                <tr>
-                  <th style={thStyle}>Email</th>
-                  <th style={thStyle}>Name</th>
-                  <th style={thStyle}>Phone</th>
-                  <th style={thStyle}>Created</th>
-                  <th style={thStyle}>Departments</th>
-                  <th style={thStyle}>Action</th>
+        {/* Table Section */}
+        <div
+          style={{
+            flex: 1,
+            backgroundColor: "white",
+            borderRadius: "12px",
+            padding: "1.5rem",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+            overflowY: "auto",
+            width: "100%",
+            transition: "0.3s",
+          }}
+        >
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+            }}
+          >
+            <thead style={{ backgroundColor: "#e0f2fe" }}>
+              <tr>
+                <th style={styles.columnHead}>Name</th>
+                <th style={styles.columnHead}>Phone</th>
+                <th style={styles.columnHead}>Created At</th>
+                <th style={styles.columnHead}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {currentUsers.map((user, index) => (
+                <tr
+                  key={index}
+                  style={{ backgroundColor: "#ffffff", transition: "0.3s" }}
+                >
+                  <td style={styles.cell}>{user.name}</td>
+                  <td style={styles.cell}>{user.phone}</td>
+                  <td style={styles.cell}>
+                    {user.createdAt
+                      ? new Date(user.createdAt).toLocaleDateString()
+                      : "Invalid Date"}
+                  </td>
+                  <td style={styles.cell}>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        gap: "0.5rem",
+                      }}
+                    >
+                      <button style={styles.promoteButton}>Promote</button>
+                      <button style={styles.deleteButton}>Delete</button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {currentUsers.length > 0 ? (
-                  currentUsers.map((u) => (
-                    <tr key={u.email}>
-                      <td style={tdStyle}>{u.email}</td>
-                      <td style={tdStyle}>{u.name}</td>
-                      <td style={tdStyle}>{u.phone}</td>
-                      <td style={tdStyle}>
-                        {u.createdAt ? new Date(u.createdAt).toLocaleString() : "Invalid Date"}
-                      </td>
-                      <td style={tdStyle}>
-                        <select
-                          value={u.departmentIds?.[0] || ""}
-                          onChange={e => updateDepartments(u.email, [e.target.value])}
-                          style={{ padding: "5px", borderRadius: "6px" }}
-                        >
-                          <option value="" disabled>Select department…</option>
-                          {departments.map((d) => (
-                            <option key={d.departmentId} value={d.departmentId}>
-                              {d.name}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td style={tdStyle}>
-                        <button style={promoteButtonStyle} onClick={() => promoteUser(u.email)}>
-                          Promote
-                        </button>
-                        <button
-                          style={{ ...promoteButtonStyle, backgroundColor: "#dc3545", marginLeft: "10px" }}
-                          onClick={() => deleteUser(u.email)}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: "center", padding: "20px" }}>
-                      No users found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div style={paginationWrapperStyle}>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => handlePageChange(page)}
-                style={{
-                  ...pageButtonStyle,
-                  backgroundColor: currentPage === page ? "#3b4cca" : "#ffffff",
-                  color: currentPage === page ? "#ffffff" : "#3b4cca",
-                  fontWeight: currentPage === page ? "bold" : "normal",
-                  borderColor: "#3b4cca",
-                }}
-              >
-                {page}
-              </button>
-            ))}
-          </div>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </div>
 
-      <ToastContainer position="top-right" autoClose={3000} />
+        {/* Pagination Section */}
+        <div
+          style={{
+            marginTop: "1.5rem",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            gap: "0.5rem",
+            flexWrap: "nowrap",
+            flexDirection: "row",
+          }}
+        >
+          {Array.from({ length: totalPages }, (_, idx) => (
+            <button
+              key={idx}
+              onClick={() => paginate(idx + 1)}
+              style={{
+                padding: "0.4rem 0.8rem",
+                minWidth: "32px",
+                height: "32px",
+                borderRadius: "999px",
+                border: "1px solid #60a5fa",
+                backgroundColor: currentPage === idx + 1 ? "#60a5fa" : "white",
+                color: currentPage === idx + 1 ? "white" : "#3b82f6",
+                fontWeight: "600",
+                fontSize: "0.8rem",
+                cursor: "pointer",
+                transition: "background-color 0.3s, color 0.3s",
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = "#3b82f6";
+                e.target.style.color = "white";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor =
+                  currentPage === idx + 1 ? "#60a5fa" : "white";
+                e.target.style.color =
+                  currentPage === idx + 1 ? "white" : "#3b82f6";
+              }}
+            >
+              {idx + 1}
+            </button>
+          ))}
+        </div>
+      </main>
     </div>
   );
-}
-
-// 🎨 Styles
-const pageWrapperStyle = {
-  minHeight: "100vh",
-  width: "100vw",
-  background: "linear-gradient(to right, #d7f0f7, #c2e9f5)",
-  display: "flex",
-  margin: "0",
-  padding: "0",
 };
 
-const sidebarWrapperStyle = {
-  width: "300px",
-  background: "white",
-  minHeight: "100vh",
-  boxShadow: "2px 0 5px rgba(0, 0, 0, 0.1)",
-  position: "fixed",
-  top: 0,
-  left: 0,
+const styles = {
+  columnHead: {
+    padding: "16px",
+    fontWeight: "600",
+    fontSize: "1rem",
+    textAlign: "center",
+    color: "#0f172a",
+    backgroundColor: "#e0f2fe",
+    borderBottom: "2px solid #bae6fd",
+    letterSpacing: "0.5px",
+    textTransform: "capitalize",
+  },
+  cell: {
+    padding: "14px",
+    textAlign: "center",
+    fontSize: "0.95rem",
+    fontWeight: "500",
+    color: "#374151",
+    backgroundColor: "white",
+    borderBottom: "1px solid #e5e7eb",
+    transition: "0.3s",
+  },
+  promoteButton: {
+    backgroundColor: "#22c55e",
+    color: "white",
+    border: "none",
+    padding: "0.4rem 0.8rem",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontSize: "0.85rem",
+    fontWeight: "600",
+    transition: "background-color 0.3s ease",
+  },
+  deleteButton: {
+    backgroundColor: "#ef4444",
+    color: "white",
+    border: "none",
+    padding: "0.4rem 0.8rem",
+    borderRadius: "8px",
+    cursor: "pointer",
+    fontSize: "0.85rem",
+    fontWeight: "600",
+    transition: "background-color 0.3s ease",
+  },
 };
 
-const contentWrapperStyle = {
-  marginLeft: "300px",
-  flex: 1,
-  padding: "50px",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "flex-start",
-};
-
-const cardStyle = {
-  width: "100%",
-  maxWidth: "1500px",
-  background: "#fff",
-  borderRadius: "10px",
-  padding: "25px",
-  boxShadow: "0px 5px 15px rgba(0,0,0,0.2)",
-  height: "100%",
-};
-
-const titleStyle = {
-  textAlign: "center",
-  marginBottom: "20px",
-  fontSize: "26px",
-  fontWeight: "bold",
-  color: "#333",
-};
-
-const tableStyle = {
-  width: "100%",
-  borderCollapse: "collapse",
-  overflowX: "auto",
-};
-
-const theadStyle = {
-  backgroundColor: "#f2f2f2",
-};
-
-const thStyle = {
-  padding: "10px 12px",
-  borderBottom: "2px solid #ddd",
-  textAlign: "left",
-  fontWeight: "bold",
-  fontSize: "15px",
-};
-
-const tdStyle = {
-  padding: "10px 12px",
-  borderBottom: "1px solid #eee",
-  fontSize: "14px",
-};
-
-const promoteButtonStyle = {
-  backgroundColor: "#007bff",
-  color: "white",
-  border: "none",
-  padding: "8px 16px",
-  borderRadius: "6px",
-  cursor: "pointer",
-  transition: "background-color 0.3s",
-};
-
-const paginationWrapperStyle = {
-  marginTop: "30px",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  flexWrap: "wrap",
-  gap: "10px",
-  flexDirection: "row",
-};
-
-const pageButtonStyle = {
-  width: "40px",
-  height: "40px",
-  borderRadius: "16px",
-  border: "2px solid #3b4cca",
-  backgroundColor: "white",
-  color: "#3b4cca",
-  fontWeight: "bold",
-  fontSize: "16px",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  cursor: "pointer",
-  transition: "0.3s all ease",
-};
+export default ViewUsers;

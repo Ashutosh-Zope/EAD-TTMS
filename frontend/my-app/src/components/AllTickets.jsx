@@ -4,16 +4,14 @@ import Sidebar from "./Sidebar";
 
 const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:5001/api";
 
-export default function AllTickets() {
-  const [, setTickets] = useState([]);
+function AllTickets() {
+  const [tickets, setTickets] = useState([]);
   const [filteredTickets, setFilteredTickets] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [ticketsPerPage] = useState(10);
-  const [modalTicket, setModalTicket] = useState(null);
+  const ticketsPerPage = 10;
   const [priorityFilter, setPriorityFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortConfig, setSortConfig] = useState({ key: "", direction: "" });
   const navigate = useNavigate();
   const email = localStorage.getItem("userEmail");
 
@@ -31,12 +29,10 @@ export default function AllTickets() {
       .catch(console.error);
   }, [email, navigate]);
 
-  const handleSort = (key) => {
-    let direction = "asc";
-    if (sortConfig.key === key && sortConfig.direction === "asc") {
-      direction = "desc";
-    }
-    setSortConfig({ key, direction });
+  const handleLogout = () => {
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userRole");
+    navigate("/");
   };
 
   const getSortedTickets = () => {
@@ -57,66 +53,76 @@ export default function AllTickets() {
         ticket.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
-
-    if (sortConfig.key) {
-      sortableTickets.sort((a, b) => {
-        const aValue = (a[sortConfig.key] || "").toString().toLowerCase();
-        const bValue = (b[sortConfig.key] || "").toString().toLowerCase();
-        if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
-        if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
-        return 0;
-      });
-    }
-
     return sortableTickets;
   };
 
   const sortedTickets = getSortedTickets();
   const indexOfLastTicket = currentPage * ticketsPerPage;
   const indexOfFirstTicket = indexOfLastTicket - ticketsPerPage;
-  const currentTickets = sortedTickets.slice(indexOfFirstTicket, indexOfLastTicket);
+  const currentTickets = sortedTickets.slice(
+    indexOfFirstTicket,
+    indexOfLastTicket
+  );
   const totalPages = Math.ceil(sortedTickets.length / ticketsPerPage);
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
-  const handleUpdate = (ticket) => {
-    navigate(`/edit-ticket/${ticket.ticketId}`, { state: ticket });
-  };
-
-  const renderSortArrow = (key) => {
-    if (sortConfig.key !== key) return null;
-    if (sortConfig.direction === "asc") return " ▲";
-    if (sortConfig.direction === "desc") return " ▼";
-  };
-
-  const handleLogout = () => {
-  localStorage.removeItem("userEmail");
-  localStorage.removeItem("userRole");
-  navigate("/");
-  };
-
   return (
-    <div style={styles.pageWrapper}>
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        width: "100vw",
+        backgroundColor: "#f1f5f9",
+      }}
+    >
       {/* Sidebar */}
-      <div style={styles.sidebar}>
-        <Sidebar onLogout={handleLogout} isAdmin={true} />
+      <Sidebar onLogout={handleLogout} isAdmin={true} />
 
-      </div>
-
-      {/* Main Content */}
-      <main style={styles.mainContent}>
-        <h1 style={styles.title}>Ticket Management</h1>
+      {/* Main Tickets Page */}
+      <main style={{ flexGrow: 1, padding: "1rem", overflowY: "auto" }}>
+        <h1
+          style={{
+            textAlign: "center",
+            marginBottom: "1.5rem",
+            color: "#1e293b",
+          }}
+        >
+          Ticket Management
+        </h1>
 
         {/* Filters */}
-        <section style={styles.filterSection}>
-          <select value={priorityFilter} onChange={(e) => { setPriorityFilter(e.target.value); setCurrentPage(1); }} style={styles.select}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            flexWrap: "wrap",
+            gap: "1rem",
+            marginBottom: "1.5rem",
+          }}
+        >
+          <select
+            value={priorityFilter}
+            onChange={(e) => {
+              setPriorityFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            style={{ padding: "0.5rem", borderRadius: "8px" }}
+          >
             <option value="">Priority</option>
             <option value="low">Low</option>
             <option value="medium">Medium</option>
             <option value="high">High</option>
           </select>
 
-          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }} style={styles.select}>
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setCurrentPage(1);
+            }}
+            style={{ padding: "0.5rem", borderRadius: "8px" }}
+          >
             <option value="">Status</option>
             <option value="open">Open</option>
             <option value="in progress">In Progress</option>
@@ -127,46 +133,70 @@ export default function AllTickets() {
             type="text"
             placeholder="Search by description..."
             value={searchTerm}
-            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-            style={styles.searchInput}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+            style={{ padding: "0.5rem", borderRadius: "8px", width: "200px" }}
           />
-        </section>
+        </div>
 
-        {/* Table */}
-        <div style={styles.tableWrapper}>
-          <table style={styles.table}>
+        {/* Tickets Table */}
+        <div
+          style={{
+            overflowX: "auto",
+            backgroundColor: "white",
+            borderRadius: "12px",
+            padding: "1rem",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          }}
+        >
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              borderRadius: "12px",
+              overflow: "hidden",
+            }}
+          >
             <thead>
-              <tr>
-                <th style={styles.tableHeader} onClick={() => handleSort('ticketId')}>Ticket ID{renderSortArrow('ticketId')}</th>
-                <th style={styles.tableHeader} onClick={() => handleSort('description')}>Description{renderSortArrow('description')}</th>
-                <th style={styles.tableHeader} onClick={() => handleSort('priority')}>Priority{renderSortArrow('priority')}</th>
-                <th style={styles.tableHeader} onClick={() => handleSort('status')}>Status{renderSortArrow('status')}</th>
-                <th style={styles.tableHeader} onClick={() => handleSort('department')}>Department{renderSortArrow('department')}</th>
-                <th style={styles.tableHeader} onClick={() => handleSort('assignedTo')}>Assigned{renderSortArrow('assignedTo')}</th>
-                <th style={styles.tableHeader} onClick={() => handleSort('createdAt')}>Created At{renderSortArrow('createdAt')}</th>
+              <tr style={{ backgroundColor: "#3b82f6", color: "white" }}>
+                <th style={styles.tableHeader}>Ticket ID</th>
+                <th style={styles.tableHeader}>Description</th>
+                <th style={styles.tableHeader}>Priority</th>
+                <th style={styles.tableHeader}>Status</th>
+                <th style={styles.tableHeader}>Department</th>
+                <th style={styles.tableHeader}>Assigned</th>
+                <th style={styles.tableHeader}>Created At</th>
                 <th style={styles.tableHeader}>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {currentTickets.map(ticket => (
-                <tr key={ticket.ticketId}>
-                  <td style={styles.cell}>
-                    <span style={styles.link} onClick={() => setModalTicket(ticket)}>
-                      {ticket.ticketId}
-                    </span>
-                  </td>
+              {currentTickets.map((ticket) => (
+                <tr
+                  key={ticket.ticketId}
+                  style={{ backgroundColor: "#f8fafc" }}
+                >
+                  <td style={styles.cell}>{ticket.ticketId}</td>
                   <td style={styles.cell}>{ticket.description || "N/A"}</td>
                   <td style={styles.cell}>
-                    <span style={{ ...styles.priorityBadge, ...priorityBadgeStyle(ticket.priority) }}>
+                    <span
+                      style={{
+                        ...styles.priorityBadge,
+                        ...priorityBadgeStyle(ticket.priority),
+                      }}
+                    >
                       {ticket.priority || "N/A"}
                     </span>
                   </td>
                   <td style={styles.cell}>{ticket.status || "N/A"}</td>
                   <td style={styles.cell}>{ticket.department || "N/A"}</td>
                   <td style={styles.cell}>{ticket.assignedTo || "N/A"}</td>
-                  <td style={styles.cell}>{ticket.createdAt?.slice(0, 10) || "N/A"}</td>
                   <td style={styles.cell}>
-                    <button style={styles.updateButton} onClick={() => handleUpdate(ticket)}>Edit</button>
+                    {ticket.createdAt?.slice(0, 10) || "N/A"}
+                  </td>
+                  <td style={styles.cell}>
+                    <button style={styles.editButton}>Edit</button>
                   </td>
                 </tr>
               ))}
@@ -175,192 +205,80 @@ export default function AllTickets() {
         </div>
 
         {/* Pagination */}
-        <div style={styles.pagination}>
+        <div
+          style={{
+            marginTop: "2rem",
+            display: "flex",
+            justifyContent: "center",
+            gap: "0.5rem",
+          }}
+        >
           {Array.from({ length: totalPages }, (_, idx) => (
             <button
               key={idx}
               onClick={() => paginate(idx + 1)}
               style={{
-                ...styles.pageButton,
-                ...(currentPage === idx + 1 ? styles.activePage : {})
+                padding: "0.5rem 1rem",
+                borderRadius: "9999px",
+                border: "2px solid #3b82f6",
+                backgroundColor: currentPage === idx + 1 ? "#3b82f6" : "white",
+                color: currentPage === idx + 1 ? "white" : "#3b82f6",
+                fontWeight: "600",
+                cursor: "pointer",
               }}
             >
               {idx + 1}
             </button>
           ))}
         </div>
-
-        {/* Modal */}
-        {modalTicket && (
-          <div style={styles.modalOverlay}>
-            <div style={styles.modalContent}>
-              <h2>Ticket Details</h2>
-              <p><b>ID:</b> {modalTicket.ticketId}</p>
-              <p><b>Description:</b> {modalTicket.description}</p>
-              <p><b>Priority:</b> {modalTicket.priority}</p>
-              <p><b>Status:</b> {modalTicket.status}</p>
-              <p><b>Department:</b> {modalTicket.department}</p>
-              <p><b>Assigned To:</b> {modalTicket.assignedTo}</p>
-              <p><b>Created At:</b> {modalTicket.createdAt?.slice(0, 10)}</p>
-              <button style={styles.closeButton} onClick={() => setModalTicket(null)}>Close</button>
-            </div>
-          </div>
-        )}
       </main>
     </div>
   );
 }
 
-// 🎨 Styles
+// Styles
 const styles = {
-  pageWrapper: {
-    display: "flex",
-    minHeight: "100vh",
-    backgroundColor: "#f1f5f9",
-  },
-  sidebar: {
-    width: "250px",
-    backgroundColor: "white",
-    boxShadow: "2px 0 10px rgba(0,0,0,0.1)",
-  },
-  mainContent: {
-    flex: 1,
-    padding: "2rem",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-  },
-  title: {
-    fontSize: "2rem",
-    fontWeight: "600",
-    marginBottom: "1.5rem",
-    color: "#1e293b",
-  },
-  filterSection: {
-    display: "flex",
-    gap: "1rem",
-    marginBottom: "1.5rem",
-    width: "100%",
-    maxWidth: "1200px",
-    flexWrap: "wrap",
-    backgroundColor: "white",
-    padding: "1rem",
-    borderRadius: "12px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-  },
-  select: {
-    flex: 1,
-    padding: "0.6rem",
-    borderRadius: "8px",
-    border: "1px solid #ccc",
-  },
-  searchInput: {
-    flex: 2,
-    padding: "0.6rem",
-    borderRadius: "8px",
-    border: "1px solid #ccc",
-  },
-  tableWrapper: {
-    width: "100%",
-    maxWidth: "1200px",
-    backgroundColor: "white",
-    borderRadius: "12px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-    overflowX: "auto",
-  },
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-  },
   tableHeader: {
-    backgroundColor: "#1d4ed8",
-    color: "white",
-    padding: "0.8rem",
+    padding: "12px",
     textAlign: "center",
-    fontSize: "0.9rem",
-    cursor: "pointer",
+    fontWeight: "bold",
+    fontSize: "1rem",
   },
   cell: {
-    padding: "0.8rem",
+    padding: "10px",
     textAlign: "center",
     fontSize: "0.9rem",
-    borderBottom: "1px solid #eee",
+    fontWeight: "500",
+    color: "#1e293b",
   },
-  link: {
-    color: "#3b82f6",
-    cursor: "pointer",
-    textDecoration: "underline",
-  },
-  updateButton: {
+  editButton: {
     backgroundColor: "#3b82f6",
     color: "white",
     border: "none",
     padding: "0.4rem 0.8rem",
-    borderRadius: "6px",
-    cursor: "pointer",
-  },
-  pagination: {
-    marginTop: "2rem",
-    display: "flex",
-    flexDirection: "row",   // ⭐ FORCE horizontal row layout
-    gap: "0.6rem",
-    justifyContent: "center",
-    alignItems: "center",
-    flexWrap: "wrap",
-  },
-  pageButton: {
-    padding: "0.4rem 0.8rem",
-    minWidth: "2.2rem",
-    height: "2.2rem",
-    borderRadius: "9999px",
-    border: "1px solid #3b82f6",
-    backgroundColor: "white",
-    color: "#3b82f6",
-    fontWeight: "600",
-    cursor: "pointer",
-    fontSize: "0.9rem",
-    transition: "all 0.2s ease-in-out",
-  },
-  activePage: {
-    backgroundColor: "#3b82f6",
-    color: "white",
-    border: "1px solid #3b82f6",
-  },
-  modalOverlay: {
-    position: "fixed",
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    backgroundColor: "white",
-    padding: "2rem",
-    borderRadius: "12px",
-    width: "90%",
-    maxWidth: "450px",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-  },
-  closeButton: {
-    marginTop: "1rem",
-    backgroundColor: "#ef4444",
-    color: "white",
-    border: "none",
-    padding: "0.5rem 1rem",
     borderRadius: "8px",
     cursor: "pointer",
+    fontWeight: "600",
   },
   priorityBadge: {
     display: "inline-block",
-    padding: "0.3rem 0.6rem",
-    borderRadius: "8px",
+    padding: "0.3rem 0.7rem",
+    borderRadius: "9999px",
     fontSize: "0.8rem",
-    fontWeight: "500",
+    fontWeight: "600",
   },
 };
 
 const priorityBadgeStyle = (priority) => ({
-  backgroundColor: priority === "low" ? "#22c55e" : priority === "medium" ? "#facc15" : "#ef4444",
+  backgroundColor:
+    priority === "low"
+      ? "#22c55e"
+      : priority === "medium"
+      ? "#facc15"
+      : priority === "high"
+      ? "#ef4444"
+      : "#e2e8f0",
   color: priority === "medium" ? "black" : "white",
 });
+
+export default AllTickets;
